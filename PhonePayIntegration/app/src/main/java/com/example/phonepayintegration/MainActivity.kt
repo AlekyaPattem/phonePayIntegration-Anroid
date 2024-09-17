@@ -1,11 +1,13 @@
 package com.example.phonepayintegration
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Base64
 import android.util.Log
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -81,13 +83,38 @@ class MainActivity : AppCompatActivity() {
             .setChecksum(checksum)
             .setUrl(apiEndPoint)
             .build()
+//        try {
+//            PhonePe.getImplicitIntent(this, b2BPGRequest,null )
+//                ?.let { startActivityForResult(it,B2B_PG_REQUEST_CODE) };
+//        } catch (e: Exception) {
+//            println("failed pay api"+e.message)
+//        }
+
         try {
-            PhonePe.getImplicitIntent(this, b2BPGRequest,null )
-                ?.let { startActivityForResult(it,B2B_PG_REQUEST_CODE) };
+            PhonePe.getImplicitIntent(this, b2BPGRequest, null)?.let { intent ->
+                b2bPgLauncher.launch(intent)
+            }
         } catch (e: Exception) {
-            println("failed pay api"+e.message)
+            println("failed pay api: ${e.message}")
+        }
+
+    }
+
+    private val b2bPgLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data?.data
+        Log.e("TAG", "data response $data: ", )
+        if (result.resultCode == Activity.RESULT_OK) {
+//            val data = result.data
+//            Log.e("TAG", "data response $data: ", )
+            // Handle the result here
+            checkStatusCallApi()
+        } else {
+            Log.e("TAG", "Transaction failed or canceled")
         }
     }
+
 
     fun sha256(input: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
@@ -106,18 +133,18 @@ class MainActivity : AppCompatActivity() {
         return "$sha256Hash###$saltIndex"
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        Log.e("TAG", "onActivityResult: result Code " + resultCode + "")
-        if (requestCode == B2B_PG_REQUEST_CODE) {
-            checkStatusCallApi()
-            /*This callback indicates only about completion of UI flow.
-            Inform your server to make the transaction
-            status call to get the status. Update your app with the
-            success/failure status.*/
-        }
-
-    }
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//        Log.e("TAG", "onActivityResult: result Code " + resultCode + "")
+//        if (requestCode == B2B_PG_REQUEST_CODE) {
+//            checkStatusCallApi()
+//            /*This callback indicates only about completion of UI flow.
+//            Inform your server to make the transaction
+//            status call to get the status. Update your app with the
+//            success/failure status.*/
+//        }
+//
+//    }
 
     suspend fun makeApiCall() {
         val client = OkHttpClient()
